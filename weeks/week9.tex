@@ -222,3 +222,100 @@ The gradient descent update for this looks like:
 (where $\theta_0=0$ so we do not regularize the constant term)
 
 \subsection{Collaborative Filtering}
+
+The previous example assumed that you are provided with $x_1$ (romance) and $x_2$ (action).
+Now, assume instead that each user ($i$) has rated their own enjoyment of romance and action movies ($\theta\s{i}$)
+
+\[
+    \theta\s{1} = \mqty(0\\5\\0) \quad
+    \theta\s{2} = \mqty(0\\5\\0) \quad
+    \theta\s{3} = \mqty(0\\0\\5) \quad
+    \theta\s{4} = \mqty(0\\0\\5)
+\]
+
+So again, Alice and Bob enjoy romance while Carol and Dave enjoy action.
+From here, it is possible to infer the values of $x_1$ and $x_2$ for a given movie $x\s{i}$:
+
+\[
+    \text{Find } x\s{1} \text{ such that } \qty(\theta\s{1})^T x\s{1} \approx 5
+\]
+
+More formally, given $\theta\s{1}, \dots, \theta\s{n_u}$ to learn $x\s{i}$:
+
+\[
+    \min_{x\s{i}}
+    \frac{1}{2} \sum_{ j:r(i,j)=1 } \qty(
+        \qty(\theta\s{j})^T x\s{i} - y\s{i,j}
+    )^2 +
+    \frac{\lambda}{2} \sum_{k=1}^n \qty( x\ss{k}{i} )^2
+\]
+
+So we minimize the sum over all users $j$ that have rated movie $i$
+of the squared error from the actual rating $y\s{i,j}$.
+
+More generally, given $\theta\s{1}, \dots, \theta\s{n_u}$ to learn $x\s{1}, \dots, x\s{n_m}$:
+
+\[
+    \min_{x\s{i}}
+    \frac{1}{2} \sum_{i=1}^{n_m} \sum_{ j:r(i,j)=1 } \qty(
+        \qty(\theta\s{j})^T x\s{i} - y\s{i,j}
+    )^2 +
+    \frac{\lambda}{2} \sum_{i=1}^{n_m} \sum_{k=1}^n \qty( x\ss{k}{i} )^2
+\]
+
+This is a simple change: both terms in the cost now sum over all movies.
+
+We can make predicitons in both directions:
+given $x\s{1}, \dots, x\s{n_m}$ we can estimate $\theta\s{1}, \dots, \theta\s{n_u}$,
+and likewise given $\theta\s{1}, \dots, \theta\s{n_u}$ we can estimate $x\s{1}, \dots, x\s{n_m}$.
+Now, we can take an iterative approach.  Given an initial guess $\theta$, can can predict:
+
+\[ \theta \to x \to \theta \to x \to \theta \to x \to \dots \]
+
+And this actually works, but it is not yet ideal.
+
+\subsection{Collaborative Filtering Algorithm}
+
+Instead of alternating between predicting $\theta$ and $x$, we can throw them into the same objective function.
+
+\[
+    J\qty( x\s{1}, \dots, x\s{n_m}, \theta\s{1}, \dots, \theta\s{n_u} ) = 
+    \frac{1}{s} \sum_{(i,j) : r(i,j) = 1} \qty(
+        (\theta\s{j})^T x\s{i} - y\s{i,j}
+    )^2 +
+    \frac{\lambda}{2} \sum_{i=1}^{n_m} \sum_{k=1}^n \qty( x\ss{k}{i} )^2 + 
+    \frac{\lambda}{2} \sum_{j=1}^{n_u} \sum_{k=1}^n \qty( \theta\ss{k}{i} )^2
+\]
+
+And now, we minimize $J$ over all $x$ and $\theta$.
+If you hold $x$ constant then you are solving the first problem where we were given features for each movie.
+If you hold $\theta$ constant then you are solving the second problem where we were given parameters for each user.
+
+By convention, in this case, we will dispense with the constant terms, so $x,\theta \in \R^n$.
+If the algorithm wants a constant feature, it can learn one.
+
+The gradient will have terms for both $x$ and $\theta$.
+
+For this recommendation algorithm, initialize $x$ and $\theta$ to small random values
+to break symmetry and ensure that the algorithm learns $x\s{i}$ that are different from one another.
+
+Our gradient descent steps will look like this:
+
+\[
+    x\ss{k}{i} := x\ss{k}{i} - \alpha \qty(
+        \sum_{j:r(i,j)=1} \qty((\theta\s{j})^T x\s{i} - y\s{i,j}) \theta\ss{k}{j} 
+        + \lambda x\ss{k}{i}
+    )
+\]
+
+\[
+    \theta\ss{k}{i} := x\ss{k}{i} - \alpha \qty(
+        \sum_{j:r(i,j)=1} \qty((\theta\s{j})^T x\s{i} - y\s{i,j}) x\ss{k}{j} 
+        + \lambda \theta\ss{k}{i}
+    )
+\]
+
+Where the terms in parentheses are $\pdv{x\ss{k}{i}} J(x,\theta)$ and $\pdv{\theta\ss{k}{i}} J(x,\theta)$
+
+For a user $j$ with parameters $\theta$ and a movie $i$ with features $x$, predict a rating of $\theta^T x$
+(assuming $r(i,j)=0$, otherwise we already know the answer!).
