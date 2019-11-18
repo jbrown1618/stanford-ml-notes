@@ -1,0 +1,186 @@
+\chapter{Week 6}
+
+\section{Advice for Applying Machine Learning}
+
+\subsection{Deciding what to try next}
+
+\begin{itemize}
+    \item Get more training examples
+    \item Try smaller sets of features
+    \item Try getting additional features
+    \item Try changing the regularization parameter $\lambda$
+\end{itemize}
+
+Decide which option using machine learning diagnostics.
+
+\subsection{Evaluating a hypothesis}
+
+Split data into training set and test set.
+Train the data based on the training set and evaluate the model using the test set.
+If a model is overfit, then
+
+\[ J_{test}(\theta) > J(\theta) \]
+
+Another metric is misclassification error (``0/1 misclassification error'').
+
+\[
+    \mathrm{err}(h,y) = \begin{cases}
+        1 \text{ if } h \geq 0.5 \text{ and } y=0 \text{ or } 
+                      h < 0.5    \text{ and } y=1 \\
+        0 \text{ if } h < 0.5    \text{ and } y=0 \text{ or } 
+                      h \geq 0.5 \text{ and } y=1
+    \end{cases}
+\]
+
+\[
+    \text{Misclassification Error } = 
+    \frac{1}{m_{test}} 
+    \sum_{i=1}^{m_{test}} 
+    \mathrm{err}(\hth(x\ss{test}{i}), y\s{i})
+\]
+
+In other words, the misclassificaiton error is the percentage of
+the test set that was classified incorrectly.
+
+\subsection{Model Selection}
+
+Consider a hyperparameter $d$ that defines the degree of polynomial used in a regression problem.
+The simple approach is to compare $J_{test}(\theta\s{i})$ for all $d_i$ and choose the one with the lowest error.
+But this might not necessarily generalize well; $d$ has been fit to the test set.
+
+Instead, split the data into three pieces: a training set, a cross-validation set, and a test set.
+(Try 60/20/20 ratio.)
+Find which value of $d$ applied to the cross-validation set produces the lowest $J$.
+Then, applying this model to the test set yields a good estimate for how well the model will generalize.
+
+\subsection{Diagnosing bias vs. variance}
+
+High bias is equivalent to underfitting; high variance is equivalent to overfitting.
+
+Using the same example, increasing $d$ decreases the training error $J_{train}$, probably monotonically.
+On the other hand, $J_{cv}$ will be optimized for some value of $d$;
+it will decrease then increase as $d$ increases.
+
+So assume you have a model that is performing badly; $J_{cv}$ or $J_{test}$ is high.
+How can you differentiate between high bias and high variance?
+Based on the observation above, 
+if $J_{train}$ and $J_{cv}$ are both high, then it is probably a high-bias (underfitting) scenario.
+If $J_{train}$ is low and $J_{cv}$ is high, then it is probably a high-variance (overfitting) scenario.
+
+\subsection{Regularization and bias/variance}
+
+Large $\lambda$ leads to high bias (underfitting).
+Think a straight horizontal line.
+
+Small $\lambda$ leads to high variance (overfitting).
+Think a high-degree polynomial.
+
+Try a grid of values for $\lambda$ from a very small value to a very large value,
+and find the value that minimizes $J$.
+
+\subsection{Learning Curves}
+
+Plot $J_{train}$ and $J_{cv}$ as a function of the training set size $m$.
+As $m$ increases, it makes sense that $J_{train}$ should start low and increase;
+it is easy to fit a small data set perfectly.
+Likewise, $J_{cv}$ should start high and decrease;
+small data sets do not generalize well.
+
+In a high-bias case, $J_{cv}$ will decrease and stabilize at a certain value,
+while $J_{train}$ will increase and stabilize just below $J_{cv}$.
+The value at which they stabilize will be pretty high.
+In this case, getting more training data will not help.
+
+In a high-variance case, $J_{train}$ will still increase and $J_{cv}$ will still decrease,
+but the gap between them will remain large; the model will continue to perform much better on the training data.
+In this case, getting more data is likely to help.
+
+\subsection{What to do next, revisited}
+
+\begin{itemize}
+    \item Get more training examples (fixes high variance)
+    \item Try fewer features (fixes high variance)
+    \item Try more features (fixes high bias)
+    \item Try adding polynomial features (fixes high bias)
+    \item Try decreasing $\lambda$ (fixes high bias)
+    \item Try increasing $\lambda$ (fixes high variance)
+\end{itemize}
+
+Small neural networks have fewer features.
+They are computationally cheaper, but more prone to bias.
+Large neural networks are computationally more expensive, and more prone to overfitting.
+But usually using regularization is more effective than using a smaller network, 
+unless computation time is an issue.
+
+\section{Machine Learning System Design}
+
+\subsection{Error analysis}
+
+Manually examine the examples your model misclassifies.
+This might inspire you to create new features, for example.
+
+Having a numerical measurement of model performance is important,
+because you can use that metric to make decisions about what to do in your model.
+
+For skewed classes, the metric is more difficult to come up with.
+Accuracy, for example, is a particularly bad choice.
+Precision/Recall is better.
+
+\begin{center}
+\begin{tabular}{c|c|c|}
+    & Actual 1 & Actual 0 \\ \hline
+    Predicted 1 & true positive & false positive \\ \hline
+    Predicted 0 & false negative & true negative \\ \hline
+\end{tabular}
+\end{center}
+
+\[
+    \text{Precision} = 
+    P(\text{event} | \text{predicted event}) = 
+    \frac{\text{true positives}}{\text{predicted positives}} = 
+    \frac{\text{true positives}}{\text{true positives} + \text{false positives}}
+\]
+
+\[
+    \text{Recall} = 
+    P(\text{predicted event} | \text{event}) =
+    \frac{\text{true positives}}{\text{actual positives}} =
+    \frac{\text{true positives}}{\text{true positives} + \text{false negatives}}
+\]
+
+Sometimes we need to control the tradeoff between precision and recall.
+
+Suppose we want to predict $y=1$ only if we're very confident.
+In other words, set the cutoff threshold to something higher than 0.5.
+Such a model will have higher precision, but lower recall.
+
+Suppose we want to avoid missing too many positives, so we set a lower cutoff threshold.
+Such a model will have higher recall but lower precision.
+
+$F_1$ score allows you to have a single number for evaluating precision and recall.
+Note: $P+R/2$ is not a good choice for both of the reasons above.
+
+\[ F_1 = 2\frac{PR}{P+R} \]
+
+\subsection{Data for Machine Learning}
+
+Under some circumstances, getting a lot of data is ideal.
+The results of many algorithms increase monotonically with $m$.
+
+Are the existent features enough?
+Useful test: given the input $x$,
+can a human expert confidently predict $y$?
+
+Given assumptions:
+
+\begin{enumerate}
+    \item Features are sufficient for prediction
+    \item Algorithm has many parameters ($\dim(\theta)$ is large)
+\end{enumerate}
+
+Then we can say these are ``low-bias'' algorithms, and $J_{train}$ ought to be small.
+If we have a very large training set,
+then we are unlikely to overfit (i.e. $J_{train} \approx J_{test}$).
+Therefore, the test set error should be small.
+
+So in these circumstances, more data is always better!

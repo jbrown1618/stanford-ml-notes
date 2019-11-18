@@ -1,0 +1,111 @@
+\chapter{Week 1}
+
+\section{Model and Cost Functions}
+
+\subsection{Notation}
+
+Some notation will be somewhat unique for this course, and some will be unique just to my notes
+
+\begin{center}
+  \begin{tabular}{l l}
+    \hline
+    Notation                    & Meaning \\
+    \hline
+    $X$                         & The space of input variables \\
+    $\xi$                       & The $i^{th}$ value of an input variable \\
+    $Y$                         & The space of outputs \\
+    $\yi$                       & The $i^{th}$ value of the output variable \\
+    $\theta_j$                  & The $j^{th}$ model parameter \\
+    $J(\theta_0, \theta_1)$     & The cost function \\
+    $h_{\theta_0, \theta_1}(x)$ & The hypothesis function \\
+    \hline
+  \end{tabular}
+\end{center}
+
+\subsection{Cost Function}
+
+Common cost function ``Mean squared error''
+
+\[  J(\theta_0, \theta_1) = \frac{1}{2m} \sum_{i=1}^m \qty(\hat{y}_i - y_i)^2 \]
+
+\[  J(\theta_0, \theta_1) = \frac{1}{2m} \sum_{i=1}^m \qty(\hth(x_i) - y_i)^2 \]
+
+Our goal is to minimize the value of the cost function: that is,
+
+\[ \minimize{\theta_0, \theta_1} J(\theta_0, \theta_1) \]
+
+\section{Parameter Learning}
+
+\subsection{Gradient Descent}
+
+The gradient descent update is given by:
+
+\[ \theta_j := \theta_j - \alpha \pdv{\theta_j} J(\theta_0, \theta_1) \]
+
+This needs to be a simultaneous update.  That is,
+
+\begin{lstlisting}[style=Matlab-editor]
+  temp0 = update(theta0)
+  temp1 = update(theta1)
+  theta0 = temp0
+  theta1 = temp1
+\end{lstlisting}
+
+A small value of $\alpha$ can lead to slow convergence.
+A large value of $\alpha$ can lead to no convergence, or even divergence.
+Because the derivative will shrink as you approach a local minimum, the step size will automatically get smaller.
+
+\subsection{Gradient Descent for Linear Regression}
+
+To apply gradient descent to linear regression, we need to calculate the derivative term:
+
+\[ \pdv{\theta_j} J(\theta_0, \theta_1) \]
+
+\[ = \pdv{\theta_j} \frac{1}{2m} \sum_{i=1}^m \qty(\theta_0 + \theta_1 \xi - \yi)^2 \]
+
+A little calculus yields:
+
+\[ \pdv{\theta_0} J(\theta_0, \theta_1)  = \frac{1}{m} \sum_{i=1}^m \qty(h(\xi) - \yi) \]
+
+\[ \pdv{\theta_1} J(\theta_0, \theta_1)  = \frac{1}{m} \sum_{i=1}^m \qty(h(\xi) - \yi) \xi \]
+
+The cost function for linear regression is convex, which is great because 
+it means we do not have to worry about multiple local minima.
+
+``Batch'' Gradient Descent: Each iteration uses all of the training examples.
+
+An exact solution exists for linear regression, but gradient descent scales better to larger data sets.
+
+\section{Linear Algebra Review}
+
+Instead, let's just practice typesetting matrices.
+
+\[ A = \mqty( 1 & 2 \\ 3 & 4 ) \]
+
+\[ A_{12} = 2 \]
+
+\[ \vb{x} = \mqty(1 \\ 2 \\ 3 \\ 4) \]
+
+\[ x_3 = 3 \]
+
+Professor Ng refers to vectors as being synonymous with $n \times 1$ matrices.
+This is wrong (imprecise), but pretty common, so we'll go with it since it is 
+compatible with the MatLab/Octave representation.
+
+Neat trick: represent competing hypotheses using matrix-matrix multiplication:
+
+\[ sizes = \mqty(2104 \\ 1416 \\ 1534 \\ 852) \]
+
+Three hypotheses: 
+$h_{\theta}(x) = -40 + 0.25x$, and 
+$h_{\theta}(x) = 200 + 0.1x$, and 
+$h_{\theta}(x) = -150 + 0.4x$
+
+\[
+  \mqty( 1 & 2104 \\ 1 & 1416 \\ 1 & 1534 \\ 1 & 852 )
+  \mqty(-40 & 200 & -150 \\ 0.25 & 0.1 & 0.4)
+  =
+  \mqty(486 & 410 & 692 \\ 314 & 342 & 416 \\ 344 & 353 & 464 \\ 173 & 285 & 191)
+\]
+
+Each column on the right side is a set of predictions for each of the three hypothesis functions!

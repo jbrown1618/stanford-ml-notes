@@ -1,0 +1,272 @@
+\chapter{Week 5}
+
+\section{Neural Network Cost Function}
+
+Let $L$ be the number of layers in the network, of sizes $s_l$ for $1 \leq l \leq L$.
+Let $K$ be the number of units in the output layer.
+That is, $K = s_L$.
+
+The cost function is generalized from the logistic regression cost function.
+Recall, for logistic regression:
+
+\[ 
+    J(\theta) = -\frac{1}{m} 
+    \sum_{i=1}^m \qty[
+        \yi \log(\hth(\xi)) + (1-\yi) \log(1-\hth(\xi))
+    ]
+    + \frac{\lambda}{2m} \sum_{j=1}^{n} \theta_j^2
+\]
+
+For neural networks, we have
+
+\[
+    \hTh(x) \in \R^K \qquad
+    (\hTh(x))_i = i^{th} \mathrm{ output}
+\]
+
+And we can generalize the cost function to:
+
+\[
+    -\frac{1}{m} 
+    \sum_{i=1}^m \sum_{k=1}^K y_k^{(i)} \qty[
+        \log(\hTh(x^{(i)})_k) + (1-y_k^{(i)}) \log(1-\hTh(x^{(i)})_k)
+    ]
+    + \frac{\lambda}{2m} \sum_{l=1}^{L-1} \sum_{i=1}^{s_l} \sum_{j=1}^{s_{l-1}} \qty( \Theta_{ji}^{(l)} )^2
+\]
+
+The extra sum inside the first term is a sum over all classes,
+so our cost function considers the error for each possible output.
+The regularization term at the end is just the sum over all layers $l$
+of the sum of all the $\Theta$ entries squared 
+(except the sum does not include the entries with subscript 0, so it ignores bias units).
+
+Note: in the triple sum, $i$ is not training example $i$, but it is node $i$ within layer $l$,
+and $j$ is node $j$ within layer $l+1$.
+
+\section{Backpropagation}
+
+Backpropagation is an algorithm to minimize $J(\Theta)$ for a neural network.
+Using gradient descent or another optimization algorithm, we would need to compute
+$J(\Theta)$ and $\pdv{\Theta\ss{ij}{l}}$ for all $i$, $k$, and $l$.
+
+Consider the case with a single training example $(x,y)$,
+and a network with $s_1=3$, $s_2=5$, $s_3=5$, and $s_4=4$.
+Forward propagation looks like this:
+
+\begin{align*}
+    a\s{1} &= x \\
+    z\s{2} &= \Theta\s{1}a\s{1} \\
+    a\s{2} &= g\qty(z\s{2}) \\
+    z\s{3} &= \Theta\s{2}a\s{2} \\
+    a\s{3} &= g\qty(z\s{3}) \\
+    z\s{4} &= \Theta\s{3}a\s{3} \\
+    a\s{4} &= g\qty(z\s{4}) \\
+    \hTh(x) &= a\s{4}
+\end{align*}
+
+Where, recall, $a\ss{0}{l}$ must be added to the matrices at each level.
+
+For backpropagation, we will compute $\delta_j^{(l)}$, which is the ``error'' of node $j$ in layer $l$.
+For the last layer, this is straightforward:
+
+\[ \delta\ss{j}{4}
+    = a\ss{j}{4} - y_j 
+    = \hTh(x)_j - y_j
+\]
+
+Or vectorized, $\delta^{(4)} = a\s{4} - y$.
+Applying the chain rule, we can calculate $\delta$s for previous layers:
+
+\[ \delta\s{3} = (\Theta\s{3})^T\delta\s{4} \ewise g'(z\s{3}) \]
+\[ \delta\s{2} = (\Theta\s{2})^T\delta\s{3} \ewise g'(z\s{2}) \]
+
+Formally, $g'(z\s{3})$ is the derivative of the sigmoid function evaluated at the values $z\s{3}$.
+In practice, we can evaluate it as $a\s{3} \ewise (1-a\s{3})$.
+Note: $\delta\s{1}$ does not exist, because the first layer are the input features.
+So:
+
+\[ \delta\s{l} = (\Theta\s{l})^T\delta\s{l+1} \ewise a\s{l} \ewise (1 - a\s{l}) \]
+
+
+Ignoring $\lambda$ (or assuming $\lambda=0$), it can be shown that:
+
+\[ \pdv{\Theta\ss{ij}{l}} J(\Theta) = a\ss{k}{l} \delta\ss{i}{l+1} \]
+
+Now we have enough background to write a backpropagation algorithm.
+
+\begin{enumerate}
+    \item Training set $\qty{(x\s{1}, y\s{1}), \dots, (x\s{m}, y\s{m})}$
+    \item Set $\Delta\ss{ij}{l} = 0$ for all $l,i,j$
+    \item For all training examples $i \in 1, \dots, m$:
+    \begin{enumerate}
+        \item Set $a\s{1} = x\s{i}$
+        \item Perform forward propagation to compute $a\s{l}$ for $l \in 2, \dots, L$
+        \item Compute $\delta\s{L} = a\s{L} - y\s{i}$ (the error for the outputs for this training example)
+        \item Compute $\delta\s{L-1}, \delta\s{L-2}, \dots, \delta\s{2}$
+        \item Set $\Delta\ss{ij}{l} := \Delta\ss{ij}{l} + a\ss{j}{l} \delta\ss{i}{l+1}$
+        \begin{enumerate}
+            \item Vectorized: $\Delta\s{l} := \Delta\s{l} + \delta\s{l+1} \times a\s{l}$
+        \end{enumerate}
+    \end{enumerate}
+    \item Set $D\ss{ij}{l} := \frac{1}{m} \qty( \Delta\ss{ij}{l} + \lambda \Theta\ss{ij}{l} )$ if $j \neq 0$ (not the bias term)
+    \item Set $D\ss{ij}{l} := \frac{1}{m} \Delta\ss{ij}{l}$ if $j = 0$ (the unregularized bias term)
+\end{enumerate}
+
+Then we have:
+
+\[ \pdv{\Theta\ss{ij}{l}} J(\Theta) = D\ss{ij}{l} \]
+
+So we do FP followed by BP for each training example in turn.  For reference, in the algorithm above,
+
+\begin{itemize}
+    \item $i$ is the index of the current training example in $1,2,\dots,m$
+    \item $j$ is the index of the current output value in $1,2,\dots,K$
+    \item $l$ is the index of the current layer in $1,2,\dots,L$
+\end{itemize}
+
+\subsection{Intuition}
+
+For unit $j$ in layer $l$,
+
+\[ \delta\ss{j}{l} = \pdv{z\ss{j}{l}} \mathrm{cost}(i) \]
+
+\[ \mathrm{cost}(i) = y\s{i} \log(\hTh(x\s{i})) + (1 - y\s{i}) \log(1-\hTh(x\s{i})) \]
+
+In other words, $\delta\ss{j}{l}$ is the amount we would like to change $z\ss{j}{l}$
+in order to reduce the cost for that node.
+
+For forward propagation, we had:
+
+\[
+    z\ss{1}{l+1} 
+    = \Theta\ss{10}{l} 1
+    + \Theta\ss{11}{l} a\ss{1}{l}
+    + \dots
+    + \Theta\ss{1 s_l}{l} a\ss{s_l}{l}
+\]
+
+That is, the sum over all nodes feeding into node 1 in layer $l+1$ of
+the inputs to that node multiplied by the weight of the connection.
+For backward propagation, we have:
+
+\[
+    \delta\ss{2}{l-1}
+    = \Theta\ss{12}{l} \delta\ss{1}{l}
+    + \dots
+    + \Theta\ss{s_l2}{l} \delta\ss{s_l}{l}
+\]
+
+That is, the sum over all nodes getting input from node 2 of layer $l-1$ of
+the errors of those nodes multiplied by the weight of the connection.
+
+\section{Backpropagation in Practice}
+
+\subsection{Unrolling Parameters}
+
+\begin{lstlisting}[style=Matlab-editor]
+  function [J, gradient] = costFunction(theta)
+    gradient = % implement gradient calculation
+    J = % implement cost calculation
+  end
+  
+  [optimalTheta, functionVal, exitFlag] = fminunc(@costFunction, initialTheta, options);
+\end{lstlisting}
+
+The \texttt{fminunc} function in Octave assumes that \texttt{theta} is a vector
+being used to compute a \texttt{gradient} which is also a vector.
+But for our cost function and its gradient,
+we use matrices $\Theta\s{1}$ through $\Theta\s{L}$
+to compute deltas $D\s{1}$ through $D\s{L}$.
+
+So we must ``unroll'' our matrices into vectors.
+For example, assuming:
+
+\[
+    s_1 = 10 \qquad 
+    s_2 = 10 \qquad 
+    s_3 = 1
+\]
+
+We have:
+
+\[
+    \Theta\s{1}, D\s{1} \in \R^{10 \times 11} \qquad
+    \Theta\s{2}, D\s{2} \in \R^{10 \times 11} \qquad
+    \Theta\s{3}, D\s{3} \in \R^{1 \times 11}
+\]
+
+We can unroll these into vectors with:
+
+\begin{lstlisting}[style=Matlab-editor]
+  thetaVec = [ Theta1(:); Theta2(:); Theta3(:) ];
+  DVec = [ D1(:); D2(:), D3(:) ];
+\end{lstlisting}
+
+And we can roll them back into matrices with:
+
+\begin{lstlisting}[style=Matlab-editor]
+    % Note: the indices are inclusive
+    Theta1 = reshape(thetaVec(1:110),   10, 11);
+    Theta2 = reshape(thetaVec(111:220), 10, 11);
+    Theta3 = reshape(thetaVec(221:231), 1,  11);
+    D1 = reshape(DVec(1:110),   10, 11);
+    D2 = reshape(DVec(111:220), 10, 11);
+    D3 = reshape(DVec(221:231), 1,  11);
+\end{lstlisting}
+
+\subsection{Gradient Checking}
+
+It's possible to have $J$ always decreasing even with a buggy implementation!
+We can use gradient checking to try to find these subtle bugs.
+Check our calculated gradients against an approximation for the partial derivatives:
+
+\[
+    \pdv{theta_i} J(\theta) \approx 
+    \frac{
+        J(\theta_1 + \dots + (\theta_i + \epsilon) + \dots + \theta_n) 
+        - J(\theta_1 + \dots + (\theta_i - \epsilon) + \dots + \theta_n)
+    }{2\epsilon}
+\]
+
+Be sure to turn off gradient checking before training the model!
+
+\subsection{Random Initialization}
+
+Initializing $\Theta\ss{ij}{l} = 0 \forall i, j, l$ does not work.
+This is because the hidden units will all calculate the same feature.
+Instead, initialize each $\Theta\ss{ij}{l}$
+to a random value in $[-\epsilon, \epsilon]$.
+
+\begin{lstlisting}[style=Matlab-editor]
+    Theta1 = rand(10,11) * (2*INIT_EPSILON) - INIT_EPSILON;
+    Theta2 = rand(10,11) * (2*INIT_EPSILON) - INIT_EPSILON;
+    Theta3 = rand(1,11) * (2*INIT_EPSILON) - INIT_EPSILON;
+\end{lstlisting}
+
+\subsection{Putting it Together}
+
+\subsubsection{Choose an architecture}
+
+First and last layers are constrained by the number of input values
+and the number of output classes.
+A reasonable default is to use one hidden layer.
+If more than one hidden layer, use the same number of nodes in each layer.
+Usually, the more hidden units the better.
+
+\subsubsection{Train the neural network}
+
+\begin{enumerate}
+    \item Randomly initialize weights
+    \item Implement forward propagation to compute $\hTh(x\s{i})$
+    \item Implement code to compute cost function $J(\Theta)$
+    \item Implement back propagation to compute partial derivatives 
+        $\pdv{\Theta\ss{jk}{l}}J(\Theta)$
+    \item Use gradient checking to compare partial derivatives to numerical computation
+    \item Use gradient descent or other optimization method to minimize $J(\Theta)$
+\end{enumerate}
+
+Tip: use a for-loop for the first implementation.
+Use forward prop and back prop for a single $x\s{i}$ at a time.
+
+Note: $J(\Theta)$ is non-convex so you can get stuck in local optima.
+This is usually not a big deal.

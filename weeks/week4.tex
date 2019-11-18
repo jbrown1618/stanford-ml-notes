@@ -1,0 +1,94 @@
+\chapter{Week 4}
+
+\section{Nonlinear Hypotheses}
+
+We can produce nonlinear hypotheses in logistic regression by adding polynomial terms;
+but this only well for small $n$ because the combinations of features are easy to enumerate.
+With a large $n$, this would end up as a combinatorial explosion of generated features.
+
+Image recognition is a classic case where $n$ is necessarily large.
+
+\section{Neural Networks}
+
+Each input ($x_1$, $x_2$, $x_3$) to a neuron 
+produces some output $\hth(x) = \frac{1}{1 + e^{\theta^T x}}$.
+This example would be a neuron with a sigmoid activation function.
+$\theta_j$ are the weights of $x_j$.
+
+The first layer is the ``input layer''.
+The final layer is the ``output layer''.
+Intermediate layers are the ``hidden layers''.
+Each neuron in layer $j$ is connected to each neuron in layer $j+1$.
+
+Some notation:
+
+\begin{center}
+  \begin{tabular}{l l}
+    \hline
+    Notation            & Meaning \\
+    \hline
+    $a\ss{i}{j}$      & Activation of unit $i$ in layer $j$ \\
+    $\Theta\s{j}$      & Matrix of weights controlling the function mapping layer $j$ to layer $j+1$ \\
+    $\Theta\ss{12}{3}$    & Entry $(1,2)$ in the matrix connecting layers 3 and 4 \\
+    $s_j$               & The number of units in layer $j$ \\
+    \hline
+  \end{tabular}
+\end{center}
+
+So given a network with three inputs, three neurons in the hidden layer, and one output, we have:
+
+\begin{align*}
+  a\ss{1}{2} &= g\qty( \Theta\ss{10}{1}x_0 + \Theta\ss{11}{1}x_1 + \Theta\ss{12}{1}x_2 + \Theta\ss{13}{1}x_3 ) \\
+  a\ss{2}{2} &= g\qty( \Theta\ss{20}{1}x_0 + \Theta\ss{21}{1}x_1 + \Theta\ss{22}{1}x_2 + \Theta\ss{23}{1}x_3 ) \\
+  a\ss{3}{2} &= g\qty( \Theta\ss{30}{1}x_0 + \Theta\ss{31}{1}x_1 + \Theta\ss{32}{1}x_2 + \Theta\ss{33}{1}x_3 ) \\
+  \hTh(x)  = a\ss{1}{3} &= g\qty( \Theta\ss{10}{2}x_0 + \Theta\ss{11}{2}x_1 + \Theta\ss{12}{2}x_2 + \Theta\ss{13}{2}x_3 ) \\
+\end{align*}
+
+If layer $j$ has $s_j$ units and layer $j+1$ has $s_{j+1}$ units, 
+then $\Theta\s{j}$ has size $s_{j+1} \times (s_j + 1)$.
+The $+1$ comes from the bias node which always sends a value of 1.
+
+Define $z\ss{i}{j}$ such that $a\ss{i}{j} = g(z\ss{i}{j})$.
+For consistency, write $a\s{1} = x$.
+
+Let $a\s{1} = x = \mqty(x_0 \\ \vdots \\ x_3)$ 
+and $z\s{2} = \mqty(z\ss{1}{2} \\ \vdots \\ z\ss{3}{2})$.
+Then $z\s{2} = \Theta\s{2}a\s{1}$ and $a\s{2} = g(z\ss{2})$.
+Succinctly, 
+
+\[ a\s{j+1} = g\qty( \Theta\s{j} a\s{j} ) \]
+
+This process of calculating $\hTh$ from the inputs is called ``forward propagation''.
+Fully vectorizing this, we have:
+
+\[ 
+  A\s{1} = X \qquad
+  A\s{j+1} = g\qty( \mqty[ 1 & A\s{j} ] \Theta^{(j)T} )
+\]
+
+Effectively, the last step is equivalent to logistic regression,
+except instead of being constrained to use $x_j$ as the inputs features,
+the neural network is free to create its own input features from $x_j$.
+
+``Network architectures'' define the shapes of neural networks---that is,
+the number of nodes in each layer, and how the layers are connected.
+
+\subsection{Examples}
+
+Individual neurons can be used to compute logical functions like and, or, xor, etc.
+
+\begin{align*}
+  \Theta_{and} &= \mqty(-30 & 20 & 20) \\
+  \Theta_{or}  &= \mqty(-10 & 20 & 20) \\
+  \Theta_{nor} &= \mqty(10 & -20 & -20) \\
+  \Theta_{not} &= \mqty(10 & -20)
+\end{align*}
+
+And these can be combined.
+
+\subsection{Multiclass Classification}
+
+Similar to one-vs-all method for logistic regression.
+For $k$ classes, have $k$ output nodes.
+The prediction is the output node with the largest value.
+Each training example is $y \in \R^k$.

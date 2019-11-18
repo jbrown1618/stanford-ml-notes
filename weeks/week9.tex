@@ -1,0 +1,224 @@
+\chapter{Week 9}
+
+\section{Anomaly Detection}
+
+Given $\qty{x\s{1}, \dots, x\s{m}}$, is $x_{test}$ anomalous?
+Flag as an anomaly if $p(x_{test}) < \epsilon$.
+
+Examples: fraud detection, manufacturing, monitoring servers in a data center
+
+\subsection{Gaussian Distribution}
+
+Say $x \in \R$.  If $x$ has a Gaussian distribution with mean $\mu$
+and variance $\sigma^2$, then we say $x \sim N(\mu,\sigma^2)$.
+
+\[ 
+    p(x; \mu, \sigma^2) = 
+    \frac{1}{\sqrt{2\pi} \sigma} 
+    \exp(-\frac{(x-\mu)^2}{2\sigma^2}) 
+\]
+
+Given a dataset, find $\mu$ and $\sigma^2$:
+
+\[
+    \mu \approx \bar{x} = \frac{1}{m} \sum_{i=1}^m x\s{i}
+    \quad
+    \sigma^2 \approx s = \frac{1}{m} \sum_{i=1}^m \qty(x\s{i}-\mu)^2
+\]
+
+(really the coefficient should be $\frac{1}{m-1}$ in the latter formula,
+but for large $m$ it makes little difference)
+
+\subsection{Anomaly Detection Algorithm}
+
+Given a data set $\qty{x\s{1}, \dots, x\s{m}}$ where each $x \in \R^n$,
+
+\[
+    p(x)
+    = p(x_1; \mu_1, \sigma_1^2)
+      p(x_2; \mu_2, \sigma_2^2) \dots 
+      p(x_n; \mu_n, \sigma_n^2)
+    = \prod_{j=1}^n p(x_j; \mu_j, \sigma_j^2)
+\]
+
+We assume $x_j \sim N(\mu_j, \sigma_j^2)$,
+and that all $x_j$ are independent.
+They are almost definitely not independent, but the algorithm works okay anyway.
+
+Algorithm:
+\begin{enumerate}
+    \item Choose features $x_i \in \R^n$
+    \item Fit parameters $\mu_1, \dots, \mu_n, \sigma_1^2, \dots, \sigma_n^2$
+        using maximum likelihood estimators
+    \item Given a new example $x$, compute $p(x)$ using the product above
+    \item Classify as anomalous if $p(x) < \epsilon$
+\end{enumerate}
+
+Since we are just using the value of the probability density function,
+this doesn't have a whole lot of meaning.
+But it works.
+
+\subsection{Anomaly Detection System}
+
+In order to evaluate the algorithm (for choosing features, etc.),
+we want a real-valued metric.
+Assume we have labeled data, with $y=1$ indicating an anomaly.
+Assume the training set is ``normal''.
+Assume also that the cross-validation and tests sets have some normal data and some anomalies.
+Ensure that the anomalies are split between the cross-validation and test sets.
+
+Possible evaluation metrics:
+\begin{itemize}
+    \item True positive, false positive, false negative, true negative
+    \item Precision/Recall
+    \item $F_1$-score
+\end{itemize}
+
+You can choose $\epsilon$ to maximize your metric on the cross-validation set.
+This should be monotonic, so a binary search should work well.
+
+\subsection{Anomaly Detection vs. Supervised Learning}
+
+If we have labeled data, why not just use supervised learning?
+
+Anomaly detection:
+\begin{itemize}
+    \item Very small number of positive Examples
+    \item Large number of negative example
+    \item Many different ``types'' of anomalies; maybe future examples
+        would be different from ones we've already seen
+\end{itemize}
+
+Supervised learning:
+\begin{itemize}
+    \item Large number of positive and negative examples
+    \item Enough positive examples for the algorithm to get a sense of what
+        positive examples are like in general
+\end{itemize}
+
+\subsection{Choosing What Features to Use}
+
+Plot histograms to check if a feature is at least vaguely gaussian,
+or can be transformed to be gaussian.
+
+Example transformations:
+\begin{itemize}
+    \item $x \to \log(x+c)$
+    \item $x \to x^{1/c}$
+\end{itemize}
+
+Error analysis: run the algorithm;
+examine the incorrect classifications;
+use that examination as inspiration to develop new features.
+
+In particular, choose features that might take on unusually large values
+if something unusual is going on.
+
+\subsection{The Multivariate Gaussian Distribution}
+
+This has some advantages relative to the version with the independence assumption,
+and some disadvantages.
+In particular, it handles colinear features much better by accounting for covariance.
+
+Parameters: a mean vector $\mu \in \R^n$,
+and a covariance matrix $\Sigma \in \R^{n\times n}$.
+
+\[
+    p(x; \mu, \Sigma)
+    = \frac{1}{ (2\pi)^{n/2} \det(\Sigma)^{1/2}}
+      \exp( -\frac{1}{2} (x-\mu)^T \Sigma^{-1} (x-\mu))
+\]
+
+where
+
+\[
+    \mu = \frac{1}{m} \sum_{i=1}^m x\s{i}
+    \quad
+    \Sigma = \frac{1}{m} \sum_{i=1}^m (x\s{i} - \mu)(x\s{i} - \mu)^T
+\]
+
+This is the same as the original model, given the constraint that $\Sigma$ is diagonal.
+
+Disadvantaves of the multivariate model:
+computationally more expensive than the original model,
+and does not scale as well to large $n$ (because of the matrix inverse).
+Furthermore, for the multivariate model you must have $m>n$ (ideally $m>10n$)---
+otherwise $\Sigma$ is not invertible, where the original model has no such constraint.
+
+\section{Recommender Systems}
+
+Consider a set of users who watched a set of movies:
+
+\begin{center}
+\begin{tabular}{l|cccc}
+    Movie                & Alice (1) & Bob (2) & Carol (3) & Dave (4) \\ \hline
+    Love at Last         & 5 & 5 & 0 & 0 \\
+    Romance Forever      & 5 & - & - & 0 \\
+    Cute Puppies of Love & - & 4 & 0 & - \\
+    Nonstop Car Chases   & 0 & 0 & 5 & 4 \\
+    Swords vs. Karate    & 0 & 0 & 5 & -
+\end{tabular}
+\end{center}
+
+So Alice and Bob appear to like romance, while Carol and Dave like action.
+
+Notation:
+\begin{itemize}
+    \item $n_u=$ number of users
+    \item $n_m=$ number of movies
+    \item $r(i,j)=$ 1 if user $j$ has rated movie $i$
+    \item $y\s{i,j}=$ rating given by user $j$ to movie $i$
+\end{itemize}
+
+Given this incomplete dataset, predict the missing values.
+
+\subsection{Content-based Recommendation}
+
+Suppose you have a set of $n$ features describing each movie in addition to the ratings:
+
+\begin{center}
+\begin{tabular}{l|cccc|cc}
+    Movie                & Alice (1) & Bob (2) & Carol (3) & Dave (4) & $x_1$ & $x_2$ \\ \hline
+    Love at Last         & 5 & 5 & 0 & 0 & 0.90 & 0.00 \\
+    Romance Forever      & 5 & - & - & 0 & 1.00 & 0.01 \\
+    Cute Puppies of Love & - & 4 & 0 & - & 0.99 & 0.00 \\
+    Nonstop Car Chases   & 0 & 0 & 5 & 4 & 0.10 & 1.00 \\
+    Swords vs. Karate    & 0 & 0 & 5 & - & 0.00 & 0.90
+\end{tabular}
+\end{center}
+
+One option is to treat predicting ratings for each user as a separate linear regression problem.
+For each user $j$, learn a set of parameters $\theta\s{j} \in \R^{n+1}$.
+Predict user $j$ as rating movie $i$ with $(\theta\s{j})^T x\s{i}$ stars.
+
+In other words, (with $m\s{j}=$ number of movies rated by person $j$), we learn $\theta\s{j}$ with:
+
+\[
+    \min_{\theta\s{j}}
+    \frac{1}{2} \sum_{i:r(i,j)=1} \qty( (\theta\s{j})^T x\s{i} - y\s{i,j} )^2
+    + \frac{\lambda}{2} \sum_{k=1}^n \qty( \theta\ss{k}{j} )^2
+\]
+
+And to learn all of $\theta\s{1}, \dots, \theta\s{n_u}$ we apply a simple variation
+where our total cost includes the cost for each user:
+
+\[
+    \min_{\theta\s{1}, \dots, \theta\s{n_u}}
+    \frac{1}{2} \sum_{j=1}^{n_u} \sum_{i:r(i,j)=1} \qty( (\theta\s{j})^T x\s{i} - y\s{i,j} )^2
+    + \frac{\lambda}{2} \sum_{j=1}^{n_u} \sum_{k=1}^n \qty( \theta\ss{k}{j} )^2
+\]
+
+The gradient descent update for this looks like:
+
+\[
+    \theta\ss{k}{j} := \theta\ss{k}{j} - \alpha \qty(
+        \sum_{i:r(i,j)=1} \qty( 
+            (\theta\s{j})^T x\s{i} - y\s{i,j} 
+        ) x\ss{k}{i}
+        + \lambda \theta\ss{k}{j}
+    )
+\]
+
+(where $\theta_0=0$ so we do not regularize the constant term)
+
+\subsection{Collaborative Filtering}

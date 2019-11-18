@@ -1,0 +1,182 @@
+\chapter{Week 8}
+
+\section{Clustering}
+
+A type of unsupervised learning problem in which we identify
+distinct groups among our training examples.
+
+\subsection{K-Means Algorithm}
+
+Inputs: the number of clusters $K$ and the data $X$ ($\qty{x\s{1}, \dots, x\s{m}}$).
+
+\begin{enumerate}
+    \item Randomly initialize $K$ cluster centroids 
+        $\mu_1, \dots, \mu_K$
+    \item Cluster assignment step: assign each data point to the closest centroid.
+        $c\s{i} :=$ index of closest cluster centroid.
+    \item Move centroid step: set each new centroid at the mean value of the data points assigned to it.
+    \item Repeat steps 2 and 3 until the centroids no longer move in step 3.
+\end{enumerate}
+
+If a centroid ends up with no points assigned to it, you can either re-initialize it,
+or drop it (to end up with $K-1$ clusters).
+
+Example for non-separated clusters: t-shirt sizing.
+
+\subsection{Optimization Objective}
+
+Reminder: two sets of variables to keep track of:
+
+$c\s{i} \in \qty{1,2,\dots,K} = $ the index of the cluster to which $x\s{i}$ is assigned.
+
+$\mu_k \in \R^n = $ the centroid of  cluster $k$.
+
+Additional notation: $\mu_{c\s{i}}$ is the centroid of the cluster to which $x\s{i}$ has been assigned.
+
+So now we can write the cost function:
+
+\[
+    J\qty(c\s{1}, \dots, c\s{m}, \mu_1, \dots, \mu_K)
+    = \frac{1}{m} \sum_{i=1}^m \norm{ x\s{i} - \mu_{c\s{i}} }^2
+\]
+
+And we want to find
+
+\[ \min_{c, \mu} J(c, \mu) \]
+
+$J$ is sometimes called the ``Distortion'' of the K-means algorithm.
+
+\subsection{Random Initialization}
+
+One initialization technique is to randomly choose $K$ actual training examples.
+This is popular and effective.
+
+If you are unlucky with your initialization, K-means can get stuck in local optima.
+This can be resolved by running the entire thing multiple times with different initializations.
+Running it 50-1000 times would be pretty typical.
+Then pick the clustering that has the lowest distortion $J$.
+
+\subsection{Choosing the number of clusters}
+
+There is not a good way to automate this; doing it by hand is generally accepted as the best.
+
+One ``automatic'' method is the elbow method.
+Plot $J$ as a function of $K$, and choose the value for $K$ at which the cost starts going down more slowly.
+The problem is, there often is not a clear elbow.
+
+Another choice is to choose pragmatically based on how well it serves some downstream purpose.
+If you are selling t-shirts, $K=3$ (small, medium, large) or $K=5$ (add XS and XL) might be good.
+
+\section{Dimensionality Reduction}
+
+Convert data $X$ where $x \in \R^n$
+to $Z$ where $z \in \R^k$, and $k<n$.
+This helps for compressing data; 100-dimensional data 
+takes up much less disk space than 1000-dimensional data.
+It also helps for visualization; you cannot visualize 50-dimensional data,
+but you can visualize 3 or 2-dimensional data!
+
+\subsection{Principal Component Analysis}
+
+We want to find the $k<n$ vectors $u\s{1}, \dots, u\s{k} \in \R^n$
+which minimize the projection error.
+By convention, since we just need directions, we will get normalized vectors.
+
+\begin{enumerate}
+    \item Perform mean normalization (always) and feature scaling (usually).
+        That is, replace each $x\ss{j}{i}$ with $\frac{x_j - \mu_j}{\sigma_j}$.
+    \item Compute the covariance matrix
+        $\Sigma = \frac{1}{m} X^T X = \frac{1}{m} \sum_{i=1}^n \qty(x\s{i})\qty(x\s{i})^T$
+    \item Compute the ``eigenvectors'' (really the singular values) of $\Sigma$:
+        \texttt{[U,S,V] = svd(Sigma);}.
+        Since $\Sigma$ is symmetric positive-semidefinite, this will give
+        the same result as \texttt{eig(Sigma)}, but \texttt{svd} is more numerically stable.
+        $Sigma \in \R^{n \times n}$, and $U \in \R^{n \times n}$.
+    \item The columns of $U$ are the directions $u$ that we want;
+        take the first $k$ columns $U_{\text{reduce}} \in \R^{n \times k}$.
+    \item The data $z \in \R^k$ can be found by $z = U_{\text{reduce}}^T x$
+\end{enumerate}
+
+\begin{minipage}{0.5\textwidth}
+    Implementation:
+    \begin{lstlisting}[style=Matlab-editor]
+        % Principal Component Analysis
+        Sigma = (1/m) * X' * X;
+        [U,S,V] = svd(Sigma);
+        Ureduce = U(:, 1:k);
+      
+        Z = X * Ureduce;
+        z = Ureduce' * x;
+    \end{lstlisting}
+\end{minipage}\begin{minipage}{0.5\textwidth}
+    Dimensions:
+    \begin{itemize}
+        \item $X \in \R^{m \times n}$
+        \item $\Sigma \in \R^{n \times n}$
+        \item $U \in \R^{n \times n}$
+        \item $U_{\text{reduce}} \in \R^{n \times k}$
+        \item $Z \in \R^{m \times k}$
+        \item $x \in \R^n$
+        \item $z \in \R^k$
+    \end{itemize}
+\end{minipage}
+
+\subsection{Reconstruction from Compressed Representation}
+
+Go from $z \in \R^k \to x \in \R^n$
+with $x \approx x_{\text{approx}} = U_{\text{reduce}} z$
+
+\subsection{Choosing the Number of Principal Components}
+
+The number $K$ is a parameter of the PCA algorithm.
+Given the average squared projection error is given by:
+
+\[ J = \frac{1}{m} \sum_{i=1}^m \norm{ x\s{i} - x_{\text{approx}^{(i)}}}^2 \]
+
+And the total variation in the data is given by:
+
+\[ \frac{1}{m} \sum_{i=1}^m \norm{x\s{i}}^2 \]
+
+We can choose $k$ such that 99\% of variance is retained.
+That is, choose the smallest $k$ which satisfies:
+
+\[
+    \frac{
+        \frac{1}{m} \sum_{i=1}^m \norm{ x\s{i} - x_{\text{approx}^{(i)}}}^2
+    }{
+        \frac{1}{m} \sum_{i=1}^m \norm{x\s{i}}^2
+    }
+    \leq 0.01
+\]
+
+So really, rather than choosing $k$,
+it is more common to choose the amount of variance we want to retain.
+
+One way to satisfy this is to keep increasing $k$
+until it no longer satisfies the requirement.
+Yikes!
+
+A better way is to examine the diagonal of $S$
+(the singular values of the covariance matrix).
+The trace of $S$ is the total amount of variance.
+Increase $k$ until the first $k$ diagonal entries
+over the total is greater than the threshold.
+
+\[ \frac{\sum_{i=1}^k S_{ii}}{\sum_{i=1}^m S_{ii}} \geq 0.99 \]
+
+\subsection{Advice for applying PCA}
+
+Speeding up supervised learning:
+
+Rather than training $X$ against $y$, train $Z$ against $y$.
+To make predictions, use $z_{test} = U_{reduce}^T x_{test}$,
+and run the model on $z_{test}$.
+This should be faster.
+
+Bad use: using PCA to reduce overfitting.
+It works okay, but is much less effective than regularization.
+PCA does not account for the labels $y$, so when used this way,
+it might throw away useful information!
+
+Another bad use: reducing dimension without trying the same problem
+on the original data.  If it's not necessary, don't do it!

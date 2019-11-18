@@ -1,0 +1,230 @@
+\chapter{Week 3}
+
+\section{Logistic Regression}
+
+\subsection{Classification and Representation}
+
+Predicting the value of $y \in \qty{0, 1}$ to start.  Later, $y \in \qty{0, 1, 2, 3}$
+
+Na\"ive solution: just apply linear regression, and set a threshold.
+But this produces bad outputs in many cases; the accuracy is very sensitive to the threshold value.
+Also, we could predict values $>1$ or $<0$, which is nonsense.
+
+\subsubsection{Hypothesis Representation}
+
+Instead of $\hth(x) = \theta^T x$, use a modified hypothesis function:
+
+\[ \hth(x) = g(\theta^T x) \qquad g(z) = \frac{1}{1 + e^{-z}} \]
+
+Here, $g(z)$ is the Sigmoid function (or logistic function).  It maps $\R \to (0,1)$.
+We will treat the output of the hypothesis function as the probability of an event.
+More formally,
+
+\[ \hth(x) = P(y=1 | x ; \theta) \]
+
+Read this as ``The probability that $y=1$, given $x$, parameterized by $\theta$''
+
+\subsubsection{Decision Boundary}
+
+Suppose we set a threshold of $0.5$, so we predict $y=1$ if $\hth(x) \geq 0.5$.
+By inspecting a plot of $g$, we can see that $g(z) \geq 0.5$ whenever $z \geq 0$.
+So we predict an event whenever $\theta^T x \geq 0$.
+
+This effectively draws a decision boundary (hyperplane) through the data.
+We can produce a nonlinear decision boundary by adding polynomial terms.
+(Of course, it is still a hyperplane when these plynomial terms are just
+considered to be separate dimensions.)
+
+\subsection{Logistic Regression Model}
+
+\subsubsection{Cost Function}
+
+A slightly rewritten version of the linear regression cost function:
+
+\[ J(\theta)) = \frac{1}{m} \sum_{i=1}^m \mathrm{cost}\qty(\hth(\xi), \yi) \]
+\[ \mathrm{cost}\qty(h, y) = \frac{1}{2} \qty(h - y)^2 \]
+
+For logistic regression, this is not ideal.
+$h$ includes $g(z)$, which is nonlinear.
+This means $J$ would not be convex, so gradient descent would
+not be guaranteed to converge to a global minimum.
+Instead, try:
+
+\[ 
+  \mathrm{cost}(h, y) =
+  \begin{cases}
+  -\log(h)   & \mbox{if } y=1 \\
+  -\log(1-h) & \mbox{if } y=0
+  \end{cases}
+\]
+
+If the probability ($h$) is 1 and the value is 1 then the cost is 0.
+If the probability is 0 and the value is 1, then the cost goes to $\infty$.
+If the probability is 0 and the value is 0 then the cost is 0.
+If the probability is 1 and the value is 0, then the cost goes to $\infty$.
+
+Equivalently,
+
+\[ \mathrm{cost}(h, y) = -y\log(h) - (1-y)\log(1-h) \]
+
+So,
+
+\[ J(\theta) = \frac{1}{m} \sum_{i=1}^m \mathrm{cost}\qty(\hth(\xi), \yi) \]
+\[ J(\theta) = -\frac{1}{m} \sum_{i=1}^m \qty(  
+    \yi \log(\hth(\xi)) + (1-\yi)\log(1-\hth(\xi))
+   )
+\]
+
+This can actually be derived statistically from maximum likelihood estimation.
+
+Vectorizing some of these calculations yields:
+
+\[ h = g(X\theta) \]
+
+\[ J(\theta) = -\frac{1}{m} \qty( y^T\log(h) + (1-y)^T\log(1-h)) \]
+
+\subsubsection{Gradient Descent}
+
+Usual template: find $\min_\theta J(\theta)$ 
+by iterating  $\theta_j := \theta_j - \alpha \pdv{\theta_j} J(\theta)$.
+
+\[ \pdv{\theta_j}J(\theta) = \frac{1}{m} \sum_{i=1}^m \qty(\hth(\xi) = \yi) \xij \]
+
+And we're done.
+This is exactly what we have for linear regression,
+except the hypothesis function is different.
+
+Also, feature scaling is useful here, for the same reason that it was useful for linear regression.
+
+Vectorizing this yields:
+
+\[ \theta := \theta - \frac{\alpha}{m} X^T \qty( g(X\theta) - y ) \]
+
+\subsubsection{Advanced Optimization}
+
+For gradient descent, to find $\min_\theta J(\theta)$, 
+we need to have code to compute $J(\theta)$ 
+and $\pdv{\theta_j}J(\theta)$ for all $j$.
+Technically you only need to compute the partials,
+but if you're monitoring $J$ then you need to compute it.
+
+Other algorithms have exactly the same requirements:
+
+\begin{itemize}
+  \item Gradient descent
+  \item Conjugate gradient
+  \item BFGS
+  \item L-BFGS
+\end{itemize}
+
+For the latter three, there is no need to manually choose a learning rate $\alpha$, 
+and they are often faster than gradient descent, although more complex.
+
+Implementing these can be complicated, but you can still use them by 
+implementing functions to calculate $J$ and $\pdv{\theta_j} J$
+
+\begin{lstlisting}[style=Matlab-editor]
+  function [jVal, gradient] = costFunction(theta)
+    gradient = % implement gradient calculation
+    jVal = % implement cost calculation
+  end
+
+  options = optimset('GradObj', 'on', 'MaxIter', '100');
+  initialTheta = zeros(2,1);
+
+  % fminunc -> function minimization unconstrained
+  % @costFunction -> function pointer
+  [optimalTheta, functionVal, exitFlag] = fminunc(@costFunction, initialTheta, options);
+\end{lstlisting}
+
+\subsection{Multiclass Classification: One-vs-All}
+
+For a three-class classification $y \in \qty{1, 2, 3}$,
+split it into three problems: 1-vs-not-1, 2-vs-not-2, and 3-vs-not-3.
+The prediction is the class that has the highest probability.
+
+\section{Regularization}
+
+\subsection{Solving the Problem of Overfitting}
+
+``Underfitting'' or ``high bias'' means the model is not fitting the training data well.
+``Overfitting'' means the model is fitting the training data too well, and does not generalize well.
+
+Options to address this:
+
+\begin{itemize}
+  \item Reduce the number of features, either by manual selection 
+    or a model selection algorithm
+  \item Regularization: keeps all the features but reduces the
+    magnitudes of the parameters $\theta_j$.  This works well when
+    there are a lot of features, and all of them actually contributes to $y$
+\end{itemize}
+
+\subsection{Cost Function}
+
+We can penalize particular terms by adding terms to the cost function.
+For polynomial regression 
+$h = \theta_0 + \theta_1 x + \theta_2 x^2 + \theta_3 x^3 + \theta_4 x^4$,
+we can penalize overfitting functions by ensuring that 
+$\theta_3$ and $\theta_4$ are small.
+
+\[ J(\theta) := J(\theta) + 1000 \theta_3^2 + 1000 \theta_4^2 \]
+
+In general, smaller parameter values correspond to ``simpler'' hypotheses.
+Instead of the specific example above, we can introduce a general $l2$ regularization term:
+
+\[ \lambda \sum_{j=1}^m \theta_j^2 \]
+
+By convention, we do not penalize $\theta_0$ so notice the sum above begins at 1.
+$\lambda$ is called the regularization parameter.
+It controls the tradeoff between fitting the data well and keeping the parameters small.
+If $\lambda$ is too large, it may result in underfitting.
+If $\lambda$ is too small, it may result in overfitting.
+
+\subsection{Regularized Linear Regression}
+
+Updated cost function:
+
+\[
+  \min_\theta J(\theta)
+  \qquad
+  J(\theta) = \frac{1}{2m} \qty(
+    \sum_{i=1}^m \qty( \hth(\xi) - \yi )^2
+    + \lambda \sum_{j=1}^n \theta_j^2
+  )
+\]
+
+Updated gradient descent based on new :
+
+\[
+  \theta_j := \theta_j - \alpha \qty(
+    \frac{1}{m} \sum_{i=1}^m \qty( \hth(\xi) - \yi) \xij
+    + \frac{\lambda}{m} \theta_j
+  )
+\]
+
+\[
+  \theta_j := \theta_j \qty( 1 - \alpha \frac{\lambda}{m} )
+  - \alpha \frac{1}{m} \sum_{i=1}^m \qty( \hth(\xi) - \yi) \xij
+\]
+
+The term $(1-\alpha\frac{\lambda}{m})$ is always less than 1 (and usually pretty close to 1).
+So in each gradient descent iteration, $\theta_j$ is automatically scaled down a little.
+
+To use regularization with the normal equation, $(X^T X)^{-1} X^T y$ becomes
+
+\[ \qty( X^T X + \lambda \mqty[\dmat{0, 1, 1, \ddots, 1 }])^{-1} X^T y \]
+
+If $m \leq n$ then $X^T X$ is singular, which is a problem!
+But if $\lambda > 0$ then that fixes the invertibility problem.
+
+\subsection{Regularized Logistic Regression}
+
+Updated gradient descent:
+
+\[
+  \theta_j := \theta_j - \alpha \qty(
+    \frac{1}{m} \sum_{i=1}^m \qty( \hth(\xi) - \yi) \xij
+    + \frac{\lambda}{m} \theta_j
+  )
+\]

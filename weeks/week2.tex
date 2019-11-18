@@ -1,0 +1,243 @@
+\chapter{Week 2}
+
+\section{Multivariate Linear Regression}
+
+\subsection{Notation}
+
+Notation revisited---we have to introduce a little bit of 
+new notation to deal with multiple input features.
+
+\begin{center}
+  \begin{tabular}{l l}
+    \hline
+    Notation                    & Meaning \\
+    \hline
+    $m$                         & The number of training examples \\
+    $n$                         & The number of variables \\
+    $X$                         & The space of input variables \\
+    $\xi$                       & The input features of the $i^{th}$ training example \\
+    $\xij$                      & The value of the $j^{th}$ feature in the $i^{th}$ training example \\
+    $Y$                         & The space of outputs \\
+    $\yi$                       & The $i^{th}$ value of the output variable \\
+    $\theta_j$                  & The $j^{th}$ model parameter \\
+    $J(\theta_0, \theta_1)$     & The cost function \\
+    $h_{\theta_0, \theta_1}(x)$ & The hypothesis function \\
+    \hline
+  \end{tabular}
+\end{center}
+
+\subsection{Multiple Features}
+
+We also need a new form for the hypothesis function:
+
+\[ h_{\theta}(x) = \theta_0 + \theta_1 x_1 + \theta_2 x_2 + ... + \theta_n x_n = \theta_0 + \sum_{j=1}^n \theta_j x_j \]
+
+Alternately, define $x_0 = 1$.  So,
+
+\[ h_{\theta}(x) = \sum_{j=0}^n \theta_j x_j \]
+
+Or even more simply,
+
+\[ h_{\theta}(x) = \vb{\theta} \cdot \vb{x} = \vb{\theta}^T \vb{x} \]
+
+\subsection{Gradient Descent}
+
+The only thing new is the partial derivative term:
+
+\[ \pdv{\theta_j} J(\vb{\theta})  = \frac{1}{m} \sum_{i=0}^m \qty( h_{\theta}(x) - \yi ) \xij \]
+
+\[ \pdv{\theta_j} J(\vb{\theta})  = \frac{1}{m} \sum_{i=0}^m \qty( \vb{\theta}^T \vb{x}^{(i)} - \yi ) \xij \]
+
+So our gradient descent algorithm becomes
+
+\[ \theta_j := \theta_j - \alpha \pdv{\theta_j} J(\vb{\theta})  \]
+
+\[ \theta_j := \theta_j - \alpha \frac{1}{m} \sum_{i=0}^m \qty( \vb{\theta}^T \vb{x}^{(i)} - \yi ) \xij \]
+
+\subsection{Feature Scaling}
+
+Gradient descent converges more quickly when the features have a similar scale.
+When the scales are very different, the contour ellipsoids are very narrow, so the gradient descent can oscillate.
+Concretely, just get each variable to a $-1 \leq x \leq 1$ range.
+Roughly.
+You can also center the data.
+
+\[ x_j := \frac{x_j - \mu_j}{\sigma_j} \]
+
+\subsection{Learning Rate}
+
+For a good value of $\alpha$, the cost $J$ should decrease with every iteration.
+If it diverges or oscillates, then $\alpha$ is too large.
+If it converges too slowly, then $\alpha$ is too small.
+Ideally, find one value that is too large and one value that is too small, and choose something in between.
+
+\subsection{Features and Polynomial Regression}
+
+You can also feature engineer.
+
+\begin{itemize}
+  \item Combine features together to form new features
+  \item Operate on a single feature for form a new feature (square it, etc.)
+\end{itemize}
+
+When you use polynomial features, feature scaling becomes especially important.
+
+\subsection{Computing Parameters Analytically}
+
+An alternative to gradient descent is using a closed-form solution which identifies the best fit.
+When $X\theta = y$ is overdetermined, the best-fit solution is given by the Normal Equation:
+
+\[ X^T X \theta = X^T y \]
+
+\[ \theta = (X^T X)^{-1} X^T y \]
+
+This is obtained by solving $\pdv{\theta_j}J_{\theta} = 0$ for all $j$.
+In this context, $X$ is sometimes called the Design Matrix, and it is $m \times (n + 1)$.
+
+Octave:
+
+\begin{lstlisting}[style=Matlab-editor]
+  theta = pinv(X' * X) * X' * y
+  % pinv will give the best theta even if X' * X is not invertible!
+\end{lstlisting}
+
+Advantages of normal equation:
+
+\begin{itemize}
+  \item No need to choose $\alpha$
+  \item No need to iterate
+\end{itemize}
+
+Disadvantages of normal equation:
+
+\begin{itemize}
+  \item Does not work as well for large $n$ (much bigger than 1000) 
+    because $X^T X$ becomes an expensive calculation ($\mathcal{O}(n^3)$)
+\end{itemize}
+
+\section{Octave}
+
+\begin{lstlisting}[style=Matlab-editor]
+ % Range (inclusive)
+ r = 1:6
+ % [1 2 3 4 5 6]
+
+ v = 1:0.1:2
+ % [1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0]
+
+ % Print a histogram
+ normal = -6 + 10 * randn(1, 10000);
+ bincount = 50;
+ hist(normal, bincount)
+
+ % Dimensions
+ A = [1 2; 3 4; 5 6];
+ length(A) % 3 - length gives the longest dimension
+ size(A) % [3 2];
+
+ % Load data
+ load('datafile.dat')
+
+ % Indexing
+ y = randn(1, 100000)
+ v = y(1:10) % v is the first ten elements of y
+
+ A(3,2) % 6
+ A(2,:) % [3 4]
+ A(:,2) % [2;4;6]
+ A([1 3], :) % [1 2; 5 6]
+ A(:) % [1; 2; 3; 4; 5; 6]
+ B = [A A] % [1 2 1 2; 3 4 3 4; 5 6 5 6]
+ 
+
+ % Save variable to a file
+ save filename.mat v
+ clear
+ % Restore v from the file
+ load filename.mat
+
+ % Use a cleartext format instead of binary
+ save filename.txt v -ascii
+
+ % Multiplication
+ C = A * B
+
+ % Elementwise Multiplication
+ C = A .* B
+
+ % Elementwise exponentiation
+ C = A .^ 2
+
+ % Elementwise division
+ C = 1 ./ A
+
+ % log, exp, abs, +, -, <, > are elementwise as well
+
+ % Transpose
+ AT = A'
+
+ v = [1 3 2]
+ A = [1 3 2; 4 2 5]
+
+ [val, ind] = max(v) % [[3, 2]]
+ ind = find(v < 3) % [1 3]
+ [r, c] = find(A < 3) % [1 1 2], [1 3 2]
+
+ % Heatmap of Matrix
+ imagesc(A)
+
+ %
+ % Control flow
+ %
+ v = zeros(1, 10)
+ for i = 1:10
+     v(1,i) = i^2;
+ end
+   
+
+indices = 1:10
+for i = indices
+    v(1,i) = i^3
+end
+
+j = 100
+n = 0
+while j > 1
+    n = n + j
+    j = j - 1
+    if j == 53
+        break
+    elseif j == 63
+        j = j - 4
+    end
+end
+\end{lstlisting}
+
+\subsection{Function files}
+
+\begin{lstlisting}[style=Matlab-editor]
+  % In squareAndCube.m
+  function [y1, y2] = squareAndCube(x)
+  y1 = x * x;
+  y2 = y1 * x;
+  end
+\end{lstlisting}
+
+To make it accessible, you can either change to its directory,
+or use \texttt{addpath('/path/to/file/')}
+
+\subsection{Vectorization}
+
+\begin{lstlisting}[style=Matlab-editor]
+  x = [1, 2, 3, 4, 5];
+  theta = [2, 3, 4, 5, 6];
+
+  % Slowly...
+  val = 0;
+  for i = 1:length(x)
+      val = val + x(i) * theta(i)
+  end
+
+  % Alternately
+  val = theta' * x
+\end{lstlisting}

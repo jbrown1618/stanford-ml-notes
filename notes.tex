@@ -1,0 +1,59 @@
+
+\documentclass[openany]{book} % openany allows chapters to start on either an odd or an even page
+
+\usepackage[top=1in, bottom=1in, left=1in, right=1in]{geometry}
+\usepackage{parskip}  % Disables indentation at paragraph breaks
+\usepackage{amsmath, amssymb}  % Math symbols, etc.
+\usepackage{physics}  % A ton of physics macros and other useful things
+\usepackage{graphicx}
+
+\usepackage{matlab-prettifier}
+
+
+\newcommand{\minimize}[1]{\underset{#1}{\textrm{minimize}} \, }
+
+% The notation Ng uses for indexing is a pain to typeset
+\renewcommand{\ss}[2]{_{#1}^{(#2)}}
+\newcommand{\s}[1]{\ss{}{#1}}
+
+\newcommand{\xij}{x\ss{j}{i}}
+\renewcommand{\xi}{x\s{i}} % I will not be using the letter xi
+\newcommand{\yi}{y\s{i}}
+
+\newcommand{\hth}{h_\theta}
+\newcommand{\hTh}{h_\Theta}
+
+\newcommand{\R}{\mathbb{R}}
+
+\renewcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+
+% Elementwise multiplication
+\newcommand{\ewise}{\,.\!*\,}
+
+% SVM Cost function
+\DeclareMathOperator{\cost}{cost}
+
+
+
+\title{ \huge{Machine Learning} \\ \vspace{1em} \normalsize{Notes from the Course by Stanford University's Andrew Ng} }
+\author{Joshua Brown}
+\date{}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\include{weeks/week1}
+\include{weeks/week2}
+\include{weeks/week3}
+\include{weeks/week4}
+\include{weeks/week5}
+\include{weeks/week6}
+\include{weeks/week7}
+\include{weeks/week8}
+\include{weeks/week9}
+% \include{weeks/week10}
+% \include{weeks/week11}
+
+\end{document}
