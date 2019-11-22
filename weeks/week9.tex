@@ -319,3 +319,125 @@ Where the terms in parentheses are $\pdv{x\ss{k}{i}} J(x,\theta)$ and $\pdv{\the
 
 For a user $j$ with parameters $\theta$ and a movie $i$ with features $x$, predict a rating of $\theta^T x$
 (assuming $r(i,j)=0$, otherwise we already know the answer!).
+
+\subsection{Low-Rank Matrix Factorization}
+
+Again, given the movie ratings dataset:
+
+\begin{center}
+\begin{tabular}{l|cccc}
+    Movie                & Alice (1) & Bob (2) & Carol (3) & Dave (4) \\ \hline
+    Love at Last         & 5 & 5 & 0 & 0 \\
+    Romance Forever      & 5 & - & - & 0 \\
+    Cute Puppies of Love & - & 4 & 0 & - \\
+    Nonstop Car Chases   & 0 & 0 & 5 & 4 \\
+    Swords vs. Karate    & 0 & 0 & 5 & -
+\end{tabular}
+\end{center}
+
+This can be rewritten as a matrix $Y \in \R^{n_m \times n_u}$:
+
+\[
+    Y = \mqty(
+        5 & 5 & 0 & 0 \\
+        5 & ? & ? & 0 \\
+        ? & 4 & 0 & ? \\
+        0 & 0 & 5 & 4 \\
+        0 & 0 & 5 & 0
+    )
+\]
+
+Meanwhile our predictions can be rewritten as a matrix where each entry is given by $()\theta\s{j})^T (x\s{i})$
+
+\[
+    \mqty(
+        (\theta\s{1})^T x\s{1} & (\theta\s{1})^T x\s{1} & \cdots & (\theta\s{n_u})^T x\s{1} \\
+        (\theta\s{1})^T x\s{2} & (\theta\s{1})^T x\s{2} & \cdots & (\theta\s{n_u})^T x\s{2} \\
+        \vdots & \vdots & \vdots & \vdots \\
+        (\theta\s{1})^T x\s{n_m} & (\theta\s{1})^T x\s{n_m} & \cdots &  (\theta\s{n_u})^T x\s{n_m}
+    )
+\]
+
+If we let $X$ be the matrix whose rows are the feature vectors for each movie and let $\Theta$ be
+the matrix whose rows are the parameter vectors for each user, then
+
+\[
+    X = \mqty( (x\s{1})^T \\ \vdots \\ (x\s{n_m})^T )
+    \quad
+    \Theta = \mqty( (\theta\s{1})^T \\ \vdots \\ (\theta\s{n_u})^T )
+\]
+
+\[
+    \text{Predicted Ratings} = X\Theta^T
+\]
+
+The algorithm we've dealt with is called low-rank matrix factorization.
+For each product/movie $i$, we learn a feature vector $x\s{i} \in \R^n$.
+How do we find movies $j$ related to movie $i$?
+Well, two movies are similar if $\norm{x\s{j} - x\s{i}}$ is small.
+
+\subsection{Mean Normalization}
+
+Consider a user who has not rated any movies:
+
+\begin{center}
+\begin{tabular}{l|ccccc}
+    Movie                & Alice (1) & Bob (2) & Carol (3) & Dave (4) & Eve (5) \\ \hline
+    Love at Last         & 5 & 5 & 0 & 0 & - \\
+    Romance Forever      & 5 & - & - & 0 & - \\
+    Cute Puppies of Love & - & 4 & 0 & - & - \\
+    Nonstop Car Chases   & 0 & 0 & 5 & 4 & - \\
+    Swords vs. Karate    & 0 & 0 & 5 & - & -
+\end{tabular}
+\end{center}
+
+And recall our optimization objective:
+
+\[
+    J( x, \theta ) = 
+    \frac{1}{s} \sum_{(i,j) : r(i,j) = 1} \qty(
+        (\theta\s{j})^T x\s{i} - y\s{i,j}
+    )^2 +
+    \frac{\lambda}{2} \sum_{i=1}^{n_m} \sum_{k=1}^n \qty( x\ss{k}{i} )^2 + 
+    \frac{\lambda}{2} \sum_{j=1}^{n_u} \sum_{k=1}^n \qty( \theta\ss{k}{i} )^2
+\]
+
+Then the first term in this cost function will be 0 for Eve, since she has not rated any movies.
+Only the last regularization term (the sum over $\theta$) will contribute, so $\theta$ will be set to 0.
+Consequently, we will predict that Eve will rate every movie as a 0.
+
+Let $\mu$ be the vector of means for each movie:
+
+\[
+    Y = \mqty(
+        5 & 5 & 0 & 0 & ? \\
+        5 & ? & ? & 0 & ? \\
+        ? & 4 & 0 & ? & ? \\
+        0 & 0 & 5 & 4 & ? \\
+        0 & 0 & 5 & 0 & ?
+    )
+    \quad
+    \mu = \mqty( 2.5 \\ 2.5 \\ 2 \\ 2.25 \\ 1.25 )
+\]
+
+And instead of working with $Y$, work with $Y := Y - 1^T \mu$
+
+\[
+    Y = \mqty(
+        2.5 & 2.5 & -2.5 & -2.5 & ? \\
+        2.5 & ? & ? & -2.5 & ? \\
+        ? & 2 & -2 & ? & ? \\
+        -2.25 & -2.25 & 2.75 & 1.75 & ? \\
+        -1.25 & -1.25 & 3.75 & -1.25 & ?
+    )
+\]
+
+So instead of predicting the ratings, we will predict how far far above its mean rating user $j$ will rate movie $i$.
+And now, to get back to real ratings, we will predict
+
+\[ (\theta\s{j})^T (x\s{i}) + \mu_i \]
+
+For Eve, $(\theta\s{j})^T (x\s{i})$ is still 0, so we predict that she will rate every movie with its mean rating.
+
+You can vary this to account for movies with no ratings (by doing mean normalization on columns),
+but this is less important; you probably do not want to recommend such a movie.
