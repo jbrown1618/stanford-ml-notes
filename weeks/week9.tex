@@ -280,7 +280,7 @@ Instead of alternating between predicting $\theta$ and $x$, we can throw them in
 
 \[
     J\qty( x\s{1}, \dots, x\s{n_m}, \theta\s{1}, \dots, \theta\s{n_u} ) = 
-    \frac{1}{s} \sum_{(i,j) : r(i,j) = 1} \qty(
+    \frac{1}{2} \sum_{(i,j) : r(i,j) = 1} \qty(
         (\theta\s{j})^T x\s{i} - y\s{i,j}
     )^2 +
     \frac{\lambda}{2} \sum_{i=1}^{n_m} \sum_{k=1}^n \qty( x\ss{k}{i} )^2 + 
@@ -347,7 +347,7 @@ This can be rewritten as a matrix $Y \in \R^{n_m \times n_u}$:
     )
 \]
 
-Meanwhile our predictions can be rewritten as a matrix where each entry is given by $()\theta\s{j})^T (x\s{i})$
+Meanwhile our predictions can be rewritten as a matrix where each entry is given by $(\theta\s{j})^T (x\s{i})$
 
 \[
     \mqty(
@@ -395,7 +395,7 @@ And recall our optimization objective:
 
 \[
     J( x, \theta ) = 
-    \frac{1}{s} \sum_{(i,j) : r(i,j) = 1} \qty(
+    \frac{1}{2} \sum_{(i,j) : r(i,j) = 1} \qty(
         (\theta\s{j})^T x\s{i} - y\s{i,j}
     )^2 +
     \frac{\lambda}{2} \sum_{i=1}^{n_m} \sum_{k=1}^n \qty( x\ss{k}{i} )^2 + 
@@ -441,3 +441,23 @@ For Eve, $(\theta\s{j})^T (x\s{i})$ is still 0, so we predict that she will rate
 
 You can vary this to account for movies with no ratings (by doing mean normalization on columns),
 but this is less important; you probably do not want to recommend such a movie.
+
+\subsection{Vectorized Implementations}
+
+Let $P$ be the predicted ratings and let $R$ be the matrix which is 1 only if the rating exists.
+
+\[ P = X \Theta^T \]
+
+\[
+    J = \frac{1}{2} \sum \qty((P \ewise R - Y)^T (P \ewise R - Y))
+        + \frac{\lambda}{2} \sum X \ewise X
+        + \frac{\lambda}{2} \sum \Theta \ewise \Theta
+\]
+
+\[
+    \pdv{X} = (P \ewise R - Y) \Theta + \lambda X
+\]
+
+\[
+    \pdv{\Theta} = (P \ewise R - Y)^T X + \lambda \Theta
+\]

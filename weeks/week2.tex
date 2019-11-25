@@ -241,3 +241,13 @@ or use \texttt{addpath('/path/to/file/')}
   % Alternately
   val = theta' * x
 \end{lstlisting}
+
+\[
+  J = \frac{1}{2m} \sum \qty( X\theta - y)^T \qty( X\theta - y)
+      + \frac{\lambda}{2m} \sum \theta \ewise \theta 
+\]
+
+\[
+  \pdv{\theta} J = \frac{1}{m} X^T (X\theta - y)
+                 + \frac{\lambda}{m} \theta
+\]

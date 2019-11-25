@@ -228,3 +228,15 @@ Updated gradient descent:
     + \frac{\lambda}{m} \theta_j
   )
 \]
+
+\subsection{Vectorized Implementation}
+
+\[
+  J = \frac{1}{2m} \sum \qty( g(X\theta) - y)^T \qty( g(X\theta) - y)
+      + \frac{\lambda}{2m} \sum \theta \ewise \theta 
+\]
+
+\[
+  \pdv{\theta} J = \frac{1}{m} X^T (g(X\theta) - y)
+                 + \frac{\lambda}{m} \theta
+\]
