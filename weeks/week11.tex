@@ -1,1 +1,58 @@
 \chapter{Week 11}
+
+\section{Case Study: Photo OCR}
+
+\subsection{Problem Description and Pipeline}
+
+OCR stands for Optical Character Recognition.
+There are two steps: first, identifying where there is text in a picture,
+then segmenting that text into characters,
+and finally identifying the characters in that text.
+This is not difficult for scanned documents, but is very difficult for photographs.
+
+This sequence of steps, each of which uses ML, is an example of a pipeline.
+
+\subsection{Sliding Windows}
+
+Pedestrian detection is a simpler problem, because the aspect ratios of rectangles
+around a person all have about the same size.
+A neural network can be trained to take a window and identify whether or not it
+includes a pedestrian.
+Then the window is shifted, and the classification is repeated.
+This entire process can be repeated with a variety of window sizes.
+
+For an example like text detection, wherein the aspect ratios vary, we can still
+use windows of a fixed size, but then apply an ``expansion operator'' to attempt
+to combine adjacent regions of text.
+
+Sliding windows can also be used for character segmentation; in this case, a neural
+network can be trained to identify whether a window contains the midpoint between
+two characters.
+
+\subsection{Getting Lots of Data and Artificial Data}
+
+For character recognition, you can use free font data to generate artificial data
+to combine with real data.
+You can also take real data and apply transformations (like distortion) to amplify the data set.
+This technique works quite well for generating speech recognition sample data as well.
+The distortions should be meaningful and representative of what might appear in the test set.
+
+Before expanding the data set, make sure you have a low-bias classifier or it will not help!
+
+``How much work would it be to get 10 times as much data as we currently have?''
+
+\begin{itemize}
+    \item Artificial data synthesis
+    \item Collect and label it yourself
+    \item ``Crowd source'' (Amazon Mechanical Turk)
+\end{itemize}
+
+\subsection{Ceiling Analysis: What Part of the Pipeline to Work on Next}
+
+Having a single real-valued metric helps us to decide what to work on.
+
+Ceiling analysis: given perfect inputs for each stage in the pipeline,
+what is the impact on the overall system accuracy?
+Whichever stage provides the largest jump is probably a good place to spend effort.
+If having perfect text location data makes the overall system much better, spend time
+on text identification!
