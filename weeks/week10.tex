@@ -1,1 +1,115 @@
 \chapter{Week 10}
+
+\section{Gradient Descent with Large Datasets}
+
+One way to build a strong classifier is to train a low-bias learning algorithm and train 
+it on a large amount of data.
+But gradient descent typically involves summation over $m$ entries, so when $m$ is very
+large, this becomes computationally very expensive.
+Sanity check: you can also start by training on a subset of the data.
+Learning curves ($J$ vs $m$) can tell you whether training on the full data will improve performance.
+
+\subsection{Stochastic Gradient Descent}
+
+Batch Gradient Descent: each update uses all $m$ training examples.
+Using linear regression as the example:
+
+\[
+    \hth(x\s{i}) = \theta^T x
+    \qquad
+    J(\theta) = \frac{1}{2m} \sum_{i=1}^m (\hth(x\s{i}) - y\s{i})^2
+    \qquad
+    \theta_j := \theta_j - \alpha \frac{1}{m} \sum_{i=1}^m (\hth(x\s{i}) - y\s{i})x\ss{j}{i}
+\]
+
+Now, write the cost for an individual data point:
+
+\[
+    \cost(\theta, (x\s{i}, y\s{i})) = \frac{1}{2}\qty( \hth(x\s{i}) - y\s{i} )^2
+    \qquad
+    J(\theta) = \frac{1}{m} \sum_{i=1}^m \cost(\theta, (x\s{i}, y\s{i}))
+    \qquad
+    \pdv{\theta_j} \cost(\theta, x, y) = (\hth(x) - u) x
+\]
+
+For Stochastic Gradient Descent:
+
+\begin{enumerate}
+    \item Randomly shuffle the dataset (just in case there is an ordering)
+    \item Repeat:
+    \begin{enumerate}
+        \item for $i \in {1, \dots, m}$:
+        \begin{enumerate}
+            \item $\theta_j = \pdv{\theta_j}\cost(\theta, x\s{i}, y\s{i})$
+                  for $j \in {1, \dots, n}$
+        \end{enumerate}
+    \end{enumerate}
+\end{enumerate}
+
+In other words, compute the gradient for the first data point, and update $\theta$.
+Then compute the gradient for the second data point, and update $\theta$, and so on.
+Stochastic gradient descent does not take as direct a path toward the global minimum;
+it tends to wander.
+But each update is much faster.
+
+\subsection{Mini-Batch Gradient Descent}
+
+Mini-batch gradient descent falls in between the batch and stochastic algorithms.
+Rather than using all $m$ examples or only 1 example per update, we will use $b$
+examples, with $1<b<m$.
+Typical values for $b$ range from 2--100.
+We still shuffle the dataset, and use $b$ examples at a time, going through the entire data set.
+
+This can perform better than stochastic gradient descent, because good vectorization can
+make the summations run more efficiently.
+
+\subsection{Convergence}
+
+For batch gradient descent, we can verify it is working by
+ensuring that $J$ decreases on each iteration.
+
+For stochastic gradient descent, we can do the same verification by ensuring that
+the cost for the training example is lower after the update compared to before.
+Plotting $\cost(\theta, x, y)$ averaged over the last 1000 (or so) examples should show a
+plot that generally appears to converge.
+Changing this number can make the trend more apparent.
+If the plot appears to diverge, use a smaller $\alpha$.
+
+If we want $\theta$ to be more certain to converge, you can decrease $\alpha$ over time:
+
+\[ \alpha = \frac{\text{const1}}{\text{iterationNumber} + \text{const2}} \]
+
+But this is often not done because fiddling with the constants takes time.
+
+\section{Online Learning}
+
+Online learning handles the scenario where there is a continuous stream of data coming in which
+should refine the algorithm's predictions.
+
+\begin{enumerate}
+    \item Repeat forever:
+    \begin{enumerate}
+        \item Get $(x,y)$ corresponding to a single new data point
+        \item Update $\theta$ using $(x,y)$
+        \begin{enumerate}
+            \item $\theta_j := \theta_j - \alpha (\hth(x) - y)x \forall j \in {1,\dots,n}$
+        \end{enumerate}
+    \end{enumerate}
+\end{enumerate}
+
+In this case, there is no fixed training set - just one example at a time.
+If the nature of the data changes over time, the algorithm will adapt.
+
+This applies well to predicted click-through-rates, showing special offers on websites, etc.
+
+\section{Map Reduce and Data Parallelism}
+
+Each machine, in parallel, trains on a fraction of the data to compute a gradient descent update.
+Each calculates its own value for the gradient, and then they are averaged on a master machine.
+If there were no network latency, this could speed up processing by as much as $N$ times,
+where $N$ is the number of machines.
+Whenever the bulk of a learning algorithm can be expressed as a sum over a large data set,
+then map-reduce can be a good way to speed up the work.
+
+Exploiting multiple cores on a single machine can yield similar benefits.
+Some numerical linear algebra libraries will do this automatically.
